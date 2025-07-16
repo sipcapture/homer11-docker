@@ -1,7 +1,7 @@
 
 <img src="https://user-images.githubusercontent.com/1423657/55069501-8348c400-5084-11e9-9931-fefe0f9874a7.png" height=200/>
 
-# [HOMER 10](http://sipcapture.org)
+# [HOMER 11](http://sipcapture.org)
 
 ⚠️ This is a technology preview. Please share your feedback ⚠️
 
@@ -9,7 +9,7 @@
 
 ## Docker Recipes
 
-This repository provides ready-to-run [HOMER 10](https://github.com/sipcapture/homer) recipes using `Docker` and [docker-compose](https://docs.docker.com/compose/install/)
+This repository provides ready-to-run [HOMER 11](https://github.com/sipcapture/homer) recipes using `Docker` and [docker-compose](https://docs.docker.com/compose/install/)
 
 ### Running Containers
 
