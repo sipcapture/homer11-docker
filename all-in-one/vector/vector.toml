@@ -1,48 +1,22 @@
-# Random Syslog-formatted logs
-[sources.dummy_logs]
-type = "demo_logs"
-format = "syslog"
-interval = 5.0
+[sources.system_scrape]
+type = "host_metrics"
+collectors = [ "cgroups", "disk", "memory", "network" ]
+namespace = "homer"
+scrape_interval_secs = 15
 
-# Parse Syslog logs
-[transforms.parse_logs]
-type = "remap"
-inputs = ["dummy_logs"]
-source = '''
-. = parse_syslog!(string!(.message))
-'''
-
-[sinks.cloki_syslog]
-type="loki"
-inputs = ["parse_logs"]
-endpoint = "http://qryn:3100"
-#tenant_id = "0"
-compression = "none"
-
-    [sinks.cloki_syslog.labels]
-    forwarder = "vector"
-    event = "{{ facility }}"
-    type = "syslog"
-
-    [sinks.cloki_syslog.encoding]
-    codec = "json"
-
-
-[sources.homer_scrape]
+[sources.heplify-server]
 type = "prometheus_scrape"
-endpoints = [ "http://heplify-server:9096/metrics" ]
-scrape_interval_secs = 10
 instance_tag = "heplify"
 endpoint_tag = "homer"
+endpoints = [ "http://heplify-server:9096/metrics" ]
+scrape_interval_secs = 15
 
-[sources.system_scrape]
-type = "prometheus_scrape"
-endpoints = [ "http://node-exporter:9100/metrics" ]
-scrape_interval_secs = 10
-instance_tag = "system"
-endpoint_tag = "homer"
+[sinks.gigapi]
+type = "influxdb_metrics"
+inputs = [ "heplify-server", "system_scrape" ]
+endpoint = "http://gigapi:7971/"
+database = "hepstats"
+default_namespace = "hepstats"
 
-[sinks.prom_write]
-type = "prometheus_remote_write"
-inputs = [ "homer_scrape", "system_scrape" ]
-endpoint = "http://qryn:3100/prom/remote/write"
+  [sinks.gigapi.healthcheck]
+  enabled = false

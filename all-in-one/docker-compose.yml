@@ -25,7 +25,6 @@ services:
       - ./vector/vector.toml:/etc/vector/vector.toml:ro
     depends_on:
       - gigapi
-      - heplify-server
     logging:
       options:
         max-size: "10m"
@@ -41,6 +40,9 @@ services:
     restart: unless-stopped
     depends_on:
       - heplify-server
+    logging:
+      options:
+        max-size: "10m"
 
   hepgen-bad:
     image: qxip/docker-hepgen
@@ -55,6 +57,9 @@ services:
     restart: unless-stopped
     depends_on:
       - heplify-server
+    logging:
+      options:
+        max-size: "10m"
 
   heplify-server:
     image: ghcr.io/sipcapture/heplify-server:latest
