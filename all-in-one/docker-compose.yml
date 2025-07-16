@@ -1,97 +1,21 @@
-version: '2.1'
-
 volumes:
-    grafana_data: {}
-    clickhouse_data: {}
+    gigapi_data: {}
 
 services:
-  grafana:
-    image: grafana/grafana-oss:10.4.3
-    container_name: grafana
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
-      - ./grafana/plugins/k8spacket-nodegraphplugin-datasource:/var/lib/grafana/plugins/k8spacket-nodegraphplugin-datasource
-    environment:
-      - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_USERS_DEFAULT_THEME=light
-      - GF_EXPLORE_ENABLED=true
-      - GF_ALERTING_ENABLED=false
-      - GF_UNIFIED_ALERTING_ENABLED=true
-      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=qxip-flow-panel
-      - GF_INSTALL_PLUGINS=https://github.com/metrico/grafana-flow/releases/download/v10.0.10/qxip-flow-panel-10.0.10.zip;qxip-flow-panel"
-    restart: unless-stopped
-    ports:
-      - 3000:3000
-    depends_on:
-      - clickhouse-server
-    logging:
-      options:
-        max-size: "10m"
-
-  clickhouse-server:
-    image: clickhouse/clickhouse-server:23.3-alpine
-    container_name: clickhouse-server
+  gigapi:
+    image: ghcr.io/gigapi/gigapi:latest
+    container_name: gigapi
+    hostname: gigapi
     restart: unless-stopped
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - ./clickhouse/opentelemetry_zipkin.sql:/docker-entrypoint-initdb.d/opentelemetry_zipkin.sql
-    environment:
-      - CLICKHOUSE_USER=qryn
-      - CLICKHOUSE_PASSWORD=demo
+      - gigapi_data:/data
     ports:
-      - 8123:8123
-      - 9000:9000
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', '127.0.0.1:8123/ping']
-      interval: 1s
-      timeout: 1s
-      retries: 30
-    logging:
-      options:
-        max-size: "10m"
-
-  qryn:
-    image: qxip/qryn:latest
-    container_name: qryn
-    restart: unless-stopped
-    expose:
-      - 3100
-    ports:
-      - "3100:3100"
+      - "7971:7971"
     environment:
-      - CLICKHOUSE_SERVER=clickhouse-server
-      - CLICKHOUSE_AUTH=qryn:demo
-#      - LOG_LEVEL=debug
-      - NODE_OPTIONS="--max-old-space-size=4096"
-      - ALERTMAN_URL=http://alertman:9093
-    depends_on:
-       clickhouse-server:
-         condition: service_healthy
-    logging:
-      options:
-        max-size: "10m"
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    expose:
-      - 9100
-    logging:
-      options:
-        max-size: "10m"
+      - GIGAPI_ROOT=/data
+      - GIGAPI_LAYERS_0_NAME=default
+      - GIGAPI_LAYERS_0_TYPE=fs
+      - GIGAPI_LAYERS_0_URL=file:///data
   
   vector:
     image: timberio/vector:0.31.0-alpine
@@ -100,34 +24,8 @@ services:
     volumes:
       - ./vector/vector.toml:/etc/vector/vector.toml:ro
     depends_on:
-      - qryn
-    logging:
-      options:
-        max-size: "10m"
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: mailhog
-    hostname: mailhog
-    expose:
-      - 1025
-      - 8025
-#    ports:
-#      - "8025:8025"
-    logging:
-      options:
-        max-size: "10m"
-
-  alertman:
-    image: prom/alertmanager:latest
-    container_name: alertman
-    hostname: alertman
-    volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    expose:
-      - 9093
-    ports:
-      - 9093:9093
+      - gigapi
+      - heplify-server
     logging:
       options:
         max-size: "10m"
@@ -142,8 +40,7 @@ services:
     - "LOOP=10"
     restart: unless-stopped
     depends_on:
-      - qryn
-      - clickhouse-server
+      - heplify-server
 
   hepgen-bad:
     image: qxip/docker-hepgen
@@ -157,8 +54,7 @@ services:
     - "HEP_CONFIG=b2bcall_rtcp_bad.js"
     restart: unless-stopped
     depends_on:
-      - qryn
-      - clickhouse-server
+      - heplify-server
 
   heplify-server:
     image: ghcr.io/sipcapture/heplify-server:latest
@@ -180,13 +76,11 @@ services:
       - "HEPLIFYSERVER_LOGSTD=true"
       - "HEPLIFYSERVER_PROMADDR=0.0.0.0:9096"
       - "HEPLIFYSERVER_DEDUP=false"
-      - "HEPLIFYSERVER_LOKIURL=http://qryn:3100/loki/api/v1/push"
-      - "HEPLIFYSERVER_LOKITIMER=1"
-      - "HEPLIFYSERVER_LOKIIPPORTLABELS=true"
+      - "HEPLIFYSERVER_LINEPROTOURL=http://gigapi:7971/write?db=hep"
+      - "HEPLIFYSERVER_LINEPROTOIPPORTLABELS=true"
     restart: unless-stopped
     depends_on:
-      - qryn
-      - clickhouse-server
+      - gigapi
       - vector
     expose:
       - 9060
