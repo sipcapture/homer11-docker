@@ -35,6 +35,8 @@ http://localhost:7971
 #### Explore
 The demo provides full access to the entire dataset using SQL and the build-in UI
 
+<img width="1919" height="934" alt="image" src="https://github.com/user-attachments/assets/028b414f-d798-4d9a-a012-63bcc9dd7efc" />
+
 
 #### Data Ingestion
 The demo supports _hep_ ingestion and _lineprotocol_ for any other type _(logs, metrics, traces, etc)_
