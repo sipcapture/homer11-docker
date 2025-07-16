@@ -1,5 +1,5 @@
 
-<img src="https://user-images.githubusercontent.com/1423657/55069501-8348c400-5084-11e9-9931-fefe0f9874a7.png" height=200/>
+<img src="https://github.com/user-attachments/assets/eeb854e3-e31e-4637-b008-54ee5b6d4317" height=150/>
 
 # [HOMER 11](http://sipcapture.org)
 
